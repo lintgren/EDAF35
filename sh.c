@@ -183,9 +183,7 @@ void run_program(char** argv, int argc, bool foreground, bool doing_pipe)
 			dup2(output_fd,1);
 		}
 		execv(path,argv);
-		if(doing_pipe){
-			close(input_fd);
-		}
+		close(input_fd);
 	}else{
 		if(!doing_pipe){
 			int status;
