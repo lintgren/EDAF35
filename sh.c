@@ -161,37 +161,38 @@ void error(char *fmt, ...)
 /* run_program: fork and exec a program. */
 void run_program(char** argv, int argc, bool foreground, bool doing_pipe)
 {
-	for (size_t i = 0;i!=argc;++i) {
-		printf("%s\r\n",argv[i]);
-	}
-	int fd[2];
-	pipe(fd);
 	int pid = fork();
 	if(pid == 0){
-		close(fd[1]);
-		dup2(fd[0],0);
+		//child
+
 		list_t* node = path_dir_list;
 		int amode = 0;
 		size_t listlength = length(path_dir_list);
 		char path[MAXBUF];
 		for(size_t i = 0 ; i != listlength;++i){
-			//char path(sizeof(node->data)+sizeof(argv[0]));
-			int cx = snprintf(path,sizeof(path),"%s%s",node->data,"/");
-			snprintf(path+cx,sizeof(path)-cx,argv[0]);
-			//printf("%s\n", path);
+			int cx = snprintf(path,sizeof(path),"%s/%s",node->data,argv[0]);
 			if(access(path,amode) == 0)
 			break;
 			node = node->succ;
 		}
+
+		if(input_fd!=0){
+			dup2(input_fd,0);
+		}
+		if(output_fd!=0){
+			dup2(output_fd,1);
+		}
 		execv(path,argv);
+		if(doing_pipe){
+			close(input_fd);
+		}
 	}else{
-		//dup2(fd[1],1);
-		close(fd[0]);
-		//	close(fd[1]);
-		//execv(path,argv);
+		if(!doing_pipe){
+			int status;
+	  	waitpid(pid, &status, 0);
+		}
 	}
-	int status;
-  waitpid(pid, &status, 0);
+
 
 	/* you need to fork, search for the command in argv[0],
          * setup stdin and stdout of the child process, execv it.
@@ -244,7 +245,6 @@ void parse_line(void)
 			}
 
 			input_fd = open(argv[argc], O_RDONLY);
-			dup2(input_fd,1);
 
 			if (input_fd < 0)
 				error("cannot read from %s", argv[argc]);
@@ -267,7 +267,10 @@ void parse_line(void)
 
 		case PIPE:
 			doing_pipe = true;
-
+			if(pipe(pipe_fd) != 0){
+				error("Could not pipe");
+			}
+			output_fd = pipe_fd[1];
 			/*FALLTHROUGH*/
 
 		case AMPERSAND:
@@ -284,8 +287,12 @@ void parse_line(void)
 			argv[argc] = NULL;
 
 			run_program(argv, argc, foreground, doing_pipe);
-
-			input_fd	= 0;
+			if(doing_pipe){
+				input_fd = pipe_fd[0]; //sätter så att nästa itteration efter pipe får rätt input.
+				close(pipe_fd[1]); //stänger outputen från första itterationen, vi är klara.
+			}else{
+				input_fd	= 0;
+			}
 			output_fd	= 0;
 			argc		= 0;
 
