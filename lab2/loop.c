@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <signal.h>
 
+
 typedef struct sigaction sigact;
 
 void handle_usr(int s) {
