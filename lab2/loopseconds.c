@@ -44,9 +44,10 @@ int main() {
   }
   sigset_t pend;
   sigpending(&pend);
-  for (int i = 0;i!=NSIG;++i) {
+  printf("Pending signals:\r\n");
+  for (int i = 0;i!=_NSIG;++i) {
     if (sigismember(&pend, i))
-      printf("%d\r\n",i);
+      printf("%d (%s)\r\n",i,strsignal(i));
   }
   printf("loop done\r\n");
 }
