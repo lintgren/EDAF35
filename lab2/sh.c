@@ -188,7 +188,11 @@ void run_program(char** argv, int argc, bool foreground, bool doing_pipe)
 		if(!doing_pipe){
 			int status;
 	  	waitpid(pid, &status, 0);
-			printf("process %d exited with status %d\r\n",pid,status);
+			if (status==0 || status==2) {
+				printf("process %d existed normally (%d)\r\n",pid,status);
+			} else {
+				printf("process %d existed abonormally (%d)\r\n",pid,status);
+			}
 		}
 	}
 
