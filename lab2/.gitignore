@@ -1,3 +1,5 @@
 *.o
 crash
 core
+sh
+loop
