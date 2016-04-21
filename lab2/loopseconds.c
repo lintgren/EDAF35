@@ -1,5 +1,7 @@
 #define _POSIX_SOURCE
+// #define _POSIX_C_SOURCE
 #include <stdlib.h>
+#include <limits.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <signal.h>
@@ -39,6 +41,12 @@ int main() {
   time_t endTime = time(NULL) + 10;
   while(time(NULL)<endTime) {
 
+  }
+  sigset_t pend;
+  sigpending(&pend);
+  for (int i = 0;i!=NSIG;++i) {
+    if (sigismember(&pend, i))
+      printf("%d\r\n",i);
   }
   printf("loop done\r\n");
 }
