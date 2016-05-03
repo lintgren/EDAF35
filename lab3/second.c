@@ -173,6 +173,8 @@ static void pagefault(unsigned virt_page)
 	num_pagefault += 1;
 
 	page = take_phys_page();
+
+
 }
 
 static void translate(unsigned virt_addr, unsigned* phys_addr, bool write)
