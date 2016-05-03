@@ -16,4 +16,4 @@ second: second.c
 	$(CC) $(LDFLAGS) second.c -o second
 
 clean:
-	rm -f *.o sh core out
+	rm -f *.o fifo second

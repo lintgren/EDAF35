@@ -141,11 +141,13 @@ static unsigned new_swap_page()
 
 static unsigned fifo_page_replace()
 {
-	int	page;
-
-	page = INT_MAX;
-
+	static int page;
+	page+=1;
+	page%=RAM_PAGES;
+	// page = INT_MAX;
+	printf("fifo page: %d\r\n",page);
 	assert(page < RAM_PAGES);
+	return page;
 }
 
 static unsigned second_chance_replace()
@@ -162,6 +164,8 @@ static unsigned take_phys_page()
 	unsigned		page;	/* Page to be replaced. */
 
 	page = (*replace)();
+
+
 
 	return page;
 }
