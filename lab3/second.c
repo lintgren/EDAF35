@@ -80,6 +80,8 @@ static unsigned			memory[RAM_SIZE];	/* Hardware: RAM. */
 static unsigned			swap[SWAP_SIZE];	/* Hardware: disk. */
 static unsigned			(*replace)(void);	/* Page repl. alg. */
 
+static unsigned long long disk_writes;
+
 unsigned make_instr(unsigned opcode, unsigned dest, unsigned s1, unsigned s2)
 {
 	return (opcode << 26) | (dest << 21) | (s1 << 16) | (s2 & 0xffff);
@@ -125,6 +127,7 @@ static void read_page(unsigned phys_page, unsigned swap_page)
 
 static void write_page(unsigned phys_page, unsigned swap_page)
 {
+	++disk_writes;
 	memcpy(&swap[swap_page * PAGESIZE],
 		&memory[phys_page * PAGESIZE],
 		PAGESIZE * sizeof(unsigned));
@@ -145,27 +148,59 @@ static unsigned fifo_page_replace()
 	page+=1;
 	page%=RAM_PAGES;
 	// page = INT_MAX;
-	printf("fifo page: %d\r\n",page);
 	assert(page < RAM_PAGES);
 	return page;
 }
 
 static unsigned second_chance_replace()
 {
-	int	page;
+	static int	page;
 
-	page = INT_MAX;
+	//for each, if referenced -> put at end of queue, otherwise return
+	coremap_entry_t* e = &coremap[page];
+	while (e->owner!=NULL && e->owner->referenced) {
+		e->owner->referenced = 0; //remove ref flag
+		//increment page "FIFO-style"
+		page+=1;
+		page%=RAM_PAGES;
+		e = &coremap[page];
+	}
+
+	// page = INT_MAX;
 
 	assert(page < RAM_PAGES);
+	return page;
 }
 
 static unsigned take_phys_page()
 {
 	unsigned		page;	/* Page to be replaced. */
+	page = (*replace)(); //calls either fifo_page_replace or second_chance_replace, can be found in main
 
-	page = (*replace)();
+	coremap_entry_t* e = &coremap[page]; //fetch physical page address
+	if (e->owner==NULL) //no owner, free space - just use it!
+		return page;
 
+	page_table_entry_t* pt = e->owner;
+	// printf("has owner!\r\n");
 
+	if (pt->ondisk) {
+		//is located on disk, check if modified
+		// printf("on disk!\r\n");
+		if (pt->modified)
+			write_page(page,e->page);
+		pt->page = e->page;
+	} else {
+		// printf("not on disk!\r\n");
+		unsigned sw = new_swap_page();
+		pt->page = sw;
+		write_page(page,sw);
+	}
+
+	pt->ondisk = 1;
+	pt->modified = 0;
+	pt->inmemory = 0;
+	pt->referenced = 0;
 
 	return page;
 }
@@ -178,7 +213,15 @@ static void pagefault(unsigned virt_page)
 
 	page = take_phys_page();
 
+	page_table_entry_t* pt = &page_table[virt_page];
 
+	if (pt->ondisk) {
+		coremap[page].page = pt->page;
+		read_page(page,pt->page);
+	}
+	pt->inmemory = 1;
+	pt->page = page;
+	coremap[page].owner = pt;
 }
 
 static void translate(unsigned virt_addr, unsigned* phys_addr, bool write)
@@ -465,7 +508,7 @@ int run(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-#if 1
+#if 0
 	replace = fifo_page_replace;
 #else
 	replace = second_chance_replace;
@@ -473,5 +516,5 @@ int main(int argc, char** argv)
 
 	run(argc, argv);
 
-	printf("%llu page faults\n", num_pagefault);
+	printf("%llu page faults and %llu disk writes\n", num_pagefault, disk_writes);
 }
