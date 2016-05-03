@@ -185,7 +185,7 @@ static unsigned take_phys_page()
 
 	if (pt->ondisk) {
 		//is located on disk, check if modified
-		if (pt->modified)
+		if (pt->modified) //reduces writes
 			write_page(page,e->page);
 		pt->page = e->page;
 	} else {

@@ -500,8 +500,6 @@ int run(int argc, char** argv)
 			printf("R%02d = %-12d", i, cpu.reg[i]);
 		}
 		printf("\n");
-
-
 	}
 	return 0;
 }
