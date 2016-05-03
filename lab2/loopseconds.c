@@ -1,11 +1,14 @@
-#define _POSIX_SOURCE
+// #define _POSIX_SOURCE
 // #define _POSIX_C_SOURCE
+// #define _POSIX_C_SOURCE 200809L
+#define _XOPEN_SOURCE 700
 #include <stdlib.h>
 #include <limits.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <signal.h>
 #include <time.h>
+#include <string.h>
 
 typedef struct sigaction sigact;
 
@@ -39,9 +42,7 @@ int main() {
   sigprocmask(SIG_UNBLOCK,&sig_handle,0);
 
   time_t endTime = time(NULL) + 10;
-  while(time(NULL)<endTime) {
-
-  }
+  while(time(NULL)<endTime) {}
   sigset_t pend;
   sigpending(&pend);
   printf("Pending signals:\r\n");
