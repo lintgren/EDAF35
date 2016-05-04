@@ -52,12 +52,12 @@ int main() {
   sigprocmask(SIG_BLOCK, &sig_block,0);
   sigprocmask(SIG_UNBLOCK,&sig_handle,0);
 
-  time_t endTime = time(NULL) + 5;
+  time_t endTime = time(NULL) + 10;
   while(time(NULL)<endTime) {}
   sigset_t pend;
   sigpending(&pend);
   printf("Pending signals:\r\n");
-  for (int i = 0;i!=_NSIG;++i) {
+  for (int i = 1;i!=_NSIG;++i) {
     if (sigismember(&pend, i))
       printf("%d (%s)\r\n",i,strsignal(i));
   }
